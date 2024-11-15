@@ -9,8 +9,8 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
@@ -29,4 +29,54 @@ model Session {
   locale        String?
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
+}
+
+model Shop {
+  id        Int  @id @default(autoincrement())
+
+  shop      String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products      Product[]
+}
+
+model Funnel {
+  id            String         @id @default(uuid())
+  name          String
+  discountLevels DiscountLevel[]
+  autoLabels    Boolean
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  products      FunnelProduct[]  @relation("FunnelToProduct")
+}
+
+model Product {
+  id       String      @id
+  shopId   Int
+  images   String[]
+  title    String
+  funnels       FunnelProduct[]  @relation("ProductToFunnel")
+  shop     Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+model FunnelProduct {
+  id        String   @id @default(uuid())
+  funnelId  String
+  productId String
+
+  funnel    Funnel   @relation(fields: [funnelId], references: [id], name: "FunnelToProduct")
+  product   Product  @relation(fields: [productId], references: [id], name: "ProductToFunnel")
+
+  @@unique([funnelId, productId])
+}
+
+model DiscountLevel {
+  id          String   @id @default(uuid())
+  volume      Int
+  discount    Float
+  description String
+  label       String
+  funnel      Funnel   @relation(fields: [funnelId], references: [id])
+  funnelId    String
 }

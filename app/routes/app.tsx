@@ -26,7 +26,8 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/additional">Additional page</Link>
-        <Link to="/app/discount">Volume Discount</Link>
+        <Link to="/app/funnel_table">Funnel Table</Link>
+        <Link to="/app/create_funnel">Create funnel</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

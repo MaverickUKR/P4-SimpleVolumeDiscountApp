@@ -12,6 +12,7 @@ import {
   useBreakpoints
 } from '@shopify/polaris';
 import { DeleteIcon, ChartHistogramGrowthIcon, SearchIcon } from '@shopify/polaris-icons';
+import { useNavigate } from '@remix-run/react';
 
 type Offer = {
   id: string;
@@ -78,8 +79,8 @@ function OffersTable() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
+  const navigate = useNavigate();
 
-  // Фильтрация по поисковому запросу
   const filteredOffers = useMemo(
     () =>
       offers.filter((offer) =>
@@ -88,7 +89,6 @@ function OffersTable() {
     [searchQuery, offers]
   );
 
-  // Пагинация
   const totalPages = Math.ceil(filteredOffers.length / rowsPerPage);
   const displayedOffers = filteredOffers.slice(
     (currentPage - 1) * rowsPerPage,
@@ -120,7 +120,11 @@ function OffersTable() {
 
   const handleSearchChange = (value: SetStateAction<string>) => {
     setSearchQuery(value);
-    setCurrentPage(1); // Сбросить на первую страницу при новом поиске
+    setCurrentPage(1);
+  };
+
+  const handleCreateFunnelRedirect = () => {
+    navigate("/app/create_funnel");
   };
 
   return (
@@ -130,7 +134,7 @@ function OffersTable() {
         <Button
           variant="primary"
           tone="success"
-          onClick={() => {}}
+          onClick={handleCreateFunnelRedirect}
           accessibilityLabel="Create new"
         >
           Create new
@@ -186,114 +190,3 @@ function OffersTable() {
 }
 
 export default OffersTable;
-
-
-// import {
-//   Card,
-//   Page,
-//   Layout,
-//   Text,
-//   Button,
-//   ResourceList,
-//   Badge,
-//   Box
-// } from '@shopify/polaris';
-// import { DeleteIcon } from '@shopify/polaris-icons';
-
-// function Dashboard() {
-//   const offers = [
-//     {
-//       id: '1',
-//       name: 'ATOP DISCOUNT SCHEDULE - TRANSCEIVERS',
-//       creationDate: '30/08/2023',
-//       products: 5,
-//       status: 'Active',
-//     },
-//     {
-//       id: '2',
-//       name: 'My first offer',
-//       creationDate: '19/08/2023',
-//       products: 10,
-//       status: 'Active',
-//     },
-//   ];
-
-//   return (
-//     <Page title="Offers Dashboard">
-//       <Layout>
-//         {/* Top summary section */}
-//         {/* <Layout.Section>
-//           <Card>
-//             <Card>
-//               <Text variant="headingLg" as="h3">Total items ordered</Text>
-//               <Text variant="bodyMd" as="p" fontWeight="bold">0</Text>
-//             </Card>
-//           </Card>
-//         </Layout.Section>
-//         <Layout.Section>
-//           <Card>
-//             <Card>
-//               <Text variant="headingLg" as="h3">Total sales</Text>
-//               <Text variant="bodyMd" as="p" fontWeight="bold">0$</Text>
-//             </Card>
-//           </Card>
-//         </Layout.Section>
-//         <Layout.Section>
-//           <Card>
-//             <Card>
-//               <Text variant="headingLg" as="h3">Total discounts</Text>
-//               <Text variant="bodyMd" as="p" fontWeight="bold">0$</Text>
-//             </Card>
-//           </Card>
-//         </Layout.Section> */}
-
-//         {/* Offers list section */}
-//         <Layout.Section>
-//           <Box>
-//           <Button
-//               variant="primary"
-//               onClick={() => {}}
-//               tone="success"
-//               accessibilityLabel="Create new"
-//             >
-//               Create new
-//             </Button>
-//           </Box>
-//           <Card>
-//             <Text variant="headingLg" as="h3">Offers list</Text>
-//             <ResourceList
-//               resourceName={{ singular: 'offer', plural: 'offers' }}
-//               items={offers}
-//               renderItem={(offer) => {
-//                 const { id, name, creationDate, products, status } = offer;
-//                 return (
-//                   <ResourceList.Item
-//                     onClick={() => {}}
-//                     id={id}
-//                     accessibilityLabel={`View details for ${name}`}
-//                   >
-//                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-//                       <div style={{ flex: 3 }}>
-//                         <Text variant="bodyMd" fontWeight="bold" as={'p'}>{name}</Text>
-//                       </div>
-//                       <div style={{ flex: 1, textAlign: 'center' }}>{creationDate}</div>
-//                       <div style={{ flex: 1, textAlign: 'center' }}>{products}</div>
-//                       <div style={{ flex: 1, textAlign: 'center' }}>
-//                         <Badge tone="success">{status}</Badge>
-//                       </div>
-//                       <div style={{ flex: 1, textAlign: 'center' }}>
-//                         <Button icon={DeleteIcon} variant="primary" tone="critical" />
-//                       </div>
-//                     </div>
-//                   </ResourceList.Item>
-//                 );
-//               }}
-//             />
-//           </Card>
-//         </Layout.Section>
-//       </Layout>
-//     </Page>
-//   );
-// }
-
-// export default Dashboard;
