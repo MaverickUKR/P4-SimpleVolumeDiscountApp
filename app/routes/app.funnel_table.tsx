@@ -11,8 +11,9 @@ import {
   Box,
   useBreakpoints
 } from '@shopify/polaris';
+import { json } from "@remix-run/node";
 import { DeleteIcon, ChartHistogramGrowthIcon, SearchIcon } from '@shopify/polaris-icons';
-import { useNavigate } from '@remix-run/react';
+import { useFetcher, useLoaderData, useNavigate } from '@remix-run/react';
 
 type Offer = {
   id: string;
@@ -22,70 +23,109 @@ type Offer = {
   status: string;
 };
 
+export async function loader() {
+  // Fetch offers data from the database
+  const offers = await prisma.funnel.findMany({
+    include: {
+      products: true,
+    },
+  });
+
+  // Map offers to the required format
+  const formattedOffers = offers.map((offer) => ({
+    id: offer.id.toString(),
+    name: offer.name,
+    creationDate: new Date(offer.createdAt).toLocaleDateString(),
+    products: offer.products.length,
+    status: offer.autoLabels ? "Active" : "Inactive",
+  }));
+
+  return { offers: formattedOffers };
+}
+
+export async function action({ request }: { request: Request }) {
+  const formData = await request.formData();
+  const funnelId = parseInt(formData.get('funnelId') as string, 10);
+
+  if (!funnelId) {
+    return json({ error: 'Invalid Funnel ID' }, { status: 400 });
+  }
+
+  try {
+    await prisma.funnel.delete({
+      where: { id: funnelId },
+    });
+
+    return json({ success: true });
+  } catch (error) {
+    console.error('Error deleting funnel:', error);
+    return json({ error: 'Failed to delete funnel' }, { status: 500 });
+  }
+}
+
 function OffersTable() {
-  const offers: Offer[] = useMemo(
-    () => [
-      {
-        id: '1',
-        name: 'ATOP DISCOUNT SCHEDULE - TRANSCEIVERS',
-        creationDate: '30/08/2023',
-        products: 5,
-        status: 'Active',
-      },
-      {
-        id: '2',
-        name: 'My first offer',
-        creationDate: '19/08/2023',
-        products: 10,
-        status: 'Active',
-      },
-      {
-        id: '3',
-        name: 'My second offer',
-        creationDate: '19/09/2023',
-        products: 15,
-        status: 'Active',
-      },
-      {
-        id: '4',
-        name: 'My third offer',
-        creationDate: '19/10/2023',
-        products: 20,
-        status: 'Active',
-      },
-      {
-        id: '5',
-        name: 'My forth offer',
-        creationDate: '19/11/2023',
-        products: 25,
-        status: 'Active',
-      },
-      {
-        id: '6',
-        name: 'My fifth offer',
-        creationDate: '19/012/2023',
-        products: 30,
-        status: 'Active',
-      },
-    ],
-    []
-  );
+  // const offers: Offer[] = useMemo(
+  //   () => [
+  //     {
+  //       id: '1',
+  //       name: 'ATOP DISCOUNT SCHEDULE - TRANSCEIVERS',
+  //       creationDate: '30/08/2023',
+  //       products: 5,
+  //       status: 'Active',
+  //     },
+  //     {
+  //       id: '2',
+  //       name: 'My first offer',
+  //       creationDate: '19/08/2023',
+  //       products: 10,
+  //       status: 'Active',
+  //     },
+  //     {
+  //       id: '3',
+  //       name: 'My second offer',
+  //       creationDate: '19/09/2023',
+  //       products: 15,
+  //       status: 'Active',
+  //     },
+  //     {
+  //       id: '4',
+  //       name: 'My third offer',
+  //       creationDate: '19/10/2023',
+  //       products: 20,
+  //       status: 'Active',
+  //     },
+  //     {
+  //       id: '5',
+  //       name: 'My forth offer',
+  //       creationDate: '19/11/2023',
+  //       products: 25,
+  //       status: 'Active',
+  //     },
+  //     {
+  //       id: '6',
+  //       name: 'My fifth offer',
+  //       creationDate: '19/012/2023',
+  //       products: 30,
+  //       status: 'Active',
+  //     },
+  //   ],
+  //   []
+  // );
 
   const resourceName = {
     singular: 'offer',
     plural: 'offers',
   };
 
+  const { offers } = useLoaderData<{ offers: Offer[] }>();
+  const fetcher = useFetcher();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
   const navigate = useNavigate();
 
   const filteredOffers = useMemo(
-    () =>
-      offers.filter((offer) =>
-        offer.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
+    () => offers.filter((offer) => offer.name.toLowerCase().includes(searchQuery.toLowerCase())),
     [searchQuery, offers]
   );
 
@@ -94,6 +134,12 @@ function OffersTable() {
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
+
+  const handleDelete = (funnelId: string) => {
+    if (confirm('Are you sure you want to delete this funnel?')) {
+      fetcher.submit({ funnelId }, { method: "post" });
+    }
+  };
 
   const rowMarkup = displayedOffers.map(
     ({ id, name, creationDate, products, status }, index) => (
@@ -112,7 +158,7 @@ function OffersTable() {
           <Badge tone="success">{status}</Badge>
         </IndexTable.Cell>
         <IndexTable.Cell>
-          <Button icon={DeleteIcon} variant="primary" tone="critical" />
+          <Button icon={DeleteIcon} variant="primary" tone="critical" onClick={() => handleDelete(id)}/>
         </IndexTable.Cell>
       </IndexTable.Row>
     )

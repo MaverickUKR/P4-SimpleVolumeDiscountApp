@@ -1,4 +1,4 @@
-import { json } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import { useSubmit } from "@remix-run/react";
 import prisma from "../db.server";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import {
   InlineStack,
   BlockStack,
 } from "@shopify/polaris";
+import { getAdminContext } from "app/shopify.server";
 
 type DiscountLevel = {
   volume: string;
@@ -30,24 +31,63 @@ type Product = {
 };
 
 export async function action({ request }: { request: Request }) {
+  const adminContext = await getAdminContext(request);
+  const shop = adminContext.session.shop;
+
   const formData = await request.formData();
+  console.log("formData:", formData);
 
   const name = formData.get("name");
   const autoLabels = JSON.parse(formData.get("autoLabels") as string);
   const selectedProducts = JSON.parse(formData.get("selectedProducts") as string);
   const discountLevels = JSON.parse(formData.get("discountLevels") as string);
 
+  console.log("Name:", name);
+  console.log("Auto Labels:", autoLabels);
+  console.log("Selected Products:", selectedProducts);
+  console.log("Discount Levels:", discountLevels);
+
   if (!name || !selectedProducts || !discountLevels) {
     return json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Проверка существования магазина
+  let existingShop = await prisma.shop.findUnique({
+    where: { shop },
+  });
+
+  if (!existingShop) {
+    existingShop = await prisma.shop.create({
+      data: { shop },
+    });
+  }
+
   try {
+    // Проверяем и добавляем недостающие продукты по shopifyId
+    for (const product of selectedProducts) {
+      await prisma.product.upsert({
+        where: { shopifyId: product.id }, // Ищем по shopifyId
+        update: {}, // Ничего не обновляем
+        create: {
+          shopifyId: product.id, // Привязываем Shopify ID
+          title: product.name,
+          images: [product.imageUrl],
+          shopId: existingShop.id, // Привязываем к текущему магазину
+        },
+      });
+    }
+
+    // Создаем Funnel
     await prisma.funnel.create({
       data: {
         name: name as string,
-        autoLabels,
+        autoLabels: autoLabels as boolean,
         products: {
-          connect: selectedProducts.map((product: { id: string }) => ({ id: product.id })),
+          create: selectedProducts.map((product: { id: string }) => ({
+            product: {
+              connect: { shopifyId: product.id }, // Связываем по shopifyId
+            },
+          })),
         },
         discountLevels: {
           create: discountLevels.map((level: DiscountLevel) => ({
@@ -60,12 +100,90 @@ export async function action({ request }: { request: Request }) {
       },
     });
 
-    return json({ success: true });
+    return redirect("/app/funnel_table");
   } catch (error) {
     console.error("Error creating funnel:", error);
     return json({ error: "Failed to create funnel" }, { status: 500 });
   }
 }
+
+
+// export async function action({ request }: { request: Request }) {
+//   const adminContext = await getAdminContext(request);
+//   const shop = adminContext.session.shop;
+
+//   const formData = await request.formData();
+//   console.log("formData:", formData);
+
+//   const name = formData.get("name");
+//   const autoLabels = JSON.parse(formData.get("autoLabels") as string);
+//   const selectedProducts = JSON.parse(formData.get("selectedProducts") as string);
+//   const discountLevels = JSON.parse(formData.get("discountLevels") as string);
+
+//   console.log("Name:", name);
+//   console.log("Auto Labels:", autoLabels);
+//   console.log("Selected Products:", selectedProducts);
+//   console.log("Discount Levels:", discountLevels);
+
+//   if (!name || !selectedProducts || !discountLevels) {
+//     return json({ error: "Missing required fields" }, { status: 400 });
+//   }
+
+//   // Проверка существования магазина
+//   let existingShop = await prisma.shop.findUnique({
+//     where: { shop },
+//   });
+
+//   if (!existingShop) {
+//     existingShop = await prisma.shop.create({
+//       data: { shop },
+//     });
+//   }
+
+//   try {
+//     // Сначала проверьте и добавьте недостающие продукты
+//     for (const product of selectedProducts) {
+//       await prisma.product.upsert({
+//         where: { id: product.id },
+//         update: {}, // Ничего не обновляем
+//         create: {
+//           id: product.id,
+//           title: product.name,
+//           images: [product.imageUrl],
+//           shopId: existingShop.id, // Привязываем к текущему магазину
+//         },
+//       });
+//     }
+
+//     // Затем создайте Funnel
+//     await prisma.funnel.create({
+//       data: {
+//         name: name as string,
+//         autoLabels: autoLabels as boolean,
+//         products: {
+//           create: selectedProducts.map((product: { id: string }) => ({
+//             product: {
+//               connect: { id: product.id },
+//             },
+//           })),
+//         },
+//         discountLevels: {
+//           create: discountLevels.map((level: DiscountLevel) => ({
+//             volume: parseInt(level.volume, 10),
+//             discount: parseFloat(level.discount),
+//             description: level.description,
+//             label: level.label,
+//           })),
+//         },
+//       },
+//     });
+
+//     return json({ success: true });
+//   } catch (error) {
+//     console.error("Error creating funnel:", error);
+//     return json({ error: "Failed to create funnel" }, { status: 500 });
+//   }
+// }
 
 export default function CreateFunnel() {
   const [offerName, setOfferName] = useState<string>("");

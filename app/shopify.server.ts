@@ -5,7 +5,7 @@ import {
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-import { restResources } from "@shopify/shopify-api/rest/admin/2024-07";
+import { restResources } from "@shopify/shopify-api/rest/admin/2024-10";
 import prisma from "./db.server";
 
 const shopify = shopifyApp({
@@ -34,3 +34,25 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
+
+export const getAdminContext = async (request: Request) => {
+  const adminContext = await shopify.authenticate.admin(request);
+
+  const shop = adminContext.session.shop;
+
+  const exist = await prisma.shop.findUnique({
+    where: {
+      shop,
+    }
+  });
+
+  if (!exist) {
+    await prisma.shop.create({
+      data: {
+        shop,
+      }
+    });
+  }
+
+  return adminContext;
+};

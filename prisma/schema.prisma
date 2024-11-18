@@ -42,7 +42,7 @@ model Shop {
 }
 
 model Funnel {
-  id            String         @id @default(uuid())
+  id            Int        @id @default(autoincrement())
   name          String
   discountLevels DiscountLevel[]
   autoLabels    Boolean
@@ -52,7 +52,8 @@ model Funnel {
 }
 
 model Product {
-  id       String      @id
+  id       Int      @id @default(autoincrement())
+  shopifyId String   @unique
   shopId   Int
   images   String[]
   title    String
@@ -61,22 +62,22 @@ model Product {
 }
 
 model FunnelProduct {
-  id        String   @id @default(uuid())
-  funnelId  String
-  productId String
+  id        Int   @id @default(autoincrement())
+  funnelId  Int
+  productId Int
 
-  funnel    Funnel   @relation(fields: [funnelId], references: [id], name: "FunnelToProduct")
+  funnel    Funnel   @relation(fields: [funnelId], references: [id], name: "FunnelToProduct", onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id], name: "ProductToFunnel")
 
   @@unique([funnelId, productId])
 }
 
 model DiscountLevel {
-  id          String   @id @default(uuid())
+  id          Int   @id @default(autoincrement())
   volume      Int
   discount    Float
   description String
   label       String
-  funnel      Funnel   @relation(fields: [funnelId], references: [id])
-  funnelId    String
+  funnel      Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  funnelId    Int
 }
