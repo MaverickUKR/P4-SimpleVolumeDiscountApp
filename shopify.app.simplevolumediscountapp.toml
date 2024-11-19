@@ -3,7 +3,7 @@
 client_id = "6addcecbdc42d0e15ca315868c510264"
 name = "SimpleVolumeDiscountApp"
 handle = "simplevolumediscountapp-1"
-application_url = "https://plain-cardiac-losses-boxing.trycloudflare.com"
+application_url = "https://gather-acquire-tribunal-designed.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_products,write_products,read_orders,read_discounts,write_discount
 
 [auth]
 redirect_urls = [
-  "https://plain-cardiac-losses-boxing.trycloudflare.com/auth/callback",
-  "https://plain-cardiac-losses-boxing.trycloudflare.com/auth/shopify/callback",
-  "https://plain-cardiac-losses-boxing.trycloudflare.com/api/auth/callback"
+  "https://gather-acquire-tribunal-designed.trycloudflare.com/auth/callback",
+  "https://gather-acquire-tribunal-designed.trycloudflare.com/auth/shopify/callback",
+  "https://gather-acquire-tribunal-designed.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
