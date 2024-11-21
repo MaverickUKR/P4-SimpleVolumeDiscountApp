@@ -47,7 +47,7 @@ model Product {
   shopId   Int
   images   String[]
   title    String
-  funnelId Int       // Привязка к Funnel
+  funnelId Int
   funnel   Funnel    @relation("FunnelToProduct", fields: [funnelId], references: [id], onDelete: Cascade)
   shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }

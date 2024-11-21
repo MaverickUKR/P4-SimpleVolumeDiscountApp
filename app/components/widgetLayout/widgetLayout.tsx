@@ -126,7 +126,7 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
           </div>
           {/* Discount Markers */}
           {discountLevels.map((level, index) => (
-            <>
+            <React.Fragment key={level.volume}>
             <div
               key={index}
               style={{
@@ -169,7 +169,7 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
               {level.label}
             </span>
         </div>
-         </>
+         </React.Fragment>
           ))}
         </div>
       </div>
@@ -196,7 +196,7 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
         </thead>
         <tbody>
           {discountLevels.map((level, index) => (
-            <tr key={index}>
+            <tr key={level.volume}>
               <td style={{ border: "1px solid #ddd", padding: "8px", background: "white" }}>
                 {level.volume}
               </td>

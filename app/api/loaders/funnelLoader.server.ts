@@ -2,7 +2,7 @@
 import prisma from "../../db.server";
 import { json } from "@remix-run/node";
 
-export async function loadFunnel(funnelId: string) {
+export async function funnelLoader(funnelId: string) {
   if (!funnelId) {
     return json({ error: "Funnel ID is required", discountLevels: [] }, { status: 400 });
   }
