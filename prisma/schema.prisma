@@ -31,24 +31,14 @@ model Session {
   emailVerified Boolean?  @default(false)
 }
 
-model Shop {
-  id        Int  @id @default(autoincrement())
-
-  shop      String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  products      Product[]
-}
-
 model Funnel {
-  id            Int        @id @default(autoincrement())
+  id            Int           @id @default(autoincrement())
   name          String
   discountLevels DiscountLevel[]
   autoLabels    Boolean
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  products      FunnelProduct[]  @relation("FunnelToProduct")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  products      Product[]     @relation("FunnelToProduct") // Связь с продуктами
 }
 
 model Product {
@@ -57,23 +47,21 @@ model Product {
   shopId   Int
   images   String[]
   title    String
-  funnels       FunnelProduct[]  @relation("ProductToFunnel")
-  shop     Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  funnelId Int       // Привязка к Funnel
+  funnel   Funnel    @relation("FunnelToProduct", fields: [funnelId], references: [id], onDelete: Cascade)
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }
 
-model FunnelProduct {
-  id        Int   @id @default(autoincrement())
-  funnelId  Int
-  productId Int
-
-  funnel    Funnel   @relation(fields: [funnelId], references: [id], name: "FunnelToProduct", onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], name: "ProductToFunnel")
-
-  @@unique([funnelId, productId])
+model Shop {
+  id        Int       @id @default(autoincrement())
+  shop      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
 }
 
 model DiscountLevel {
-  id          Int   @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   volume      Int
   discount    Float
   description String

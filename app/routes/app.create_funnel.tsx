@@ -1,7 +1,7 @@
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useSubmit } from "@remix-run/react";
+import { useActionData, useSubmit } from "@remix-run/react";
 import prisma from "../db.server";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Page,
   Card,
@@ -18,6 +18,7 @@ import {
 } from "@shopify/polaris";
 import { getAdminContext } from "app/shopify.server";
 import SavingsChartWidget from "app/components/widgetLayout/widgetLayout";
+import { concatenateVolumeAndDiscount } from "app/utils/concatVolumeAndDiscount";
 
 type DiscountLevel = {
   id: number;
@@ -33,59 +34,24 @@ type Product = {
   imageUrl: string;
 };
 
-export const loader = async ({ params }: { params: { funnelId?: string } }) => {
-  const funnelId = params.funnelId;
-
-  if (!funnelId) {
-    return json({ error: "Funnel ID is required", discountLevels: [] }, { status: 400 });
-  }
-
-  const funnel = await prisma.funnel.findUnique({
-    where: { id: parseInt(funnelId, 10) },
-    include: {
-      discountLevels: {
-        orderBy: { volume: "asc" },
-      },
-    },
-  });
-
-  if (!funnel) {
-    return json({ error: "Funnel not found", discountLevels: [] }, { status: 404 });
-  }
-
-  const discountLevels = funnel.discountLevels.map((level) => ({
-    id: level.id,
-    volume: level.volume,
-    discount: level.discount,
-    description: level.description,
-    label: level.label,
-  }));
-
-  return json({ discountLevels, name: funnel.name, autoLabels: funnel.autoLabels });
-};
-
 export async function action({ request }: { request: Request }) {
   const adminContext = await getAdminContext(request);
   const shop = adminContext.session.shop;
+  const admin = adminContext.admin;
 
   const formData = await request.formData();
-  console.log("formData:", formData);
 
   const name = formData.get("name");
   const autoLabels = JSON.parse(formData.get("autoLabels") as string);
   const selectedProducts = JSON.parse(formData.get("selectedProducts") as string);
   const discountLevels = JSON.parse(formData.get("discountLevels") as string);
 
-  console.log("Name:", name);
-  console.log("Auto Labels:", autoLabels);
-  console.log("Selected Products:", selectedProducts);
-  console.log("Discount Levels:", discountLevels);
+  const { metafieldValue } = concatenateVolumeAndDiscount(discountLevels);
 
   if (!name || !selectedProducts || !discountLevels) {
     return json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  // Проверка существования магазина
   let existingShop = await prisma.shop.findUnique({
     where: { shop },
   });
@@ -96,33 +62,39 @@ export async function action({ request }: { request: Request }) {
     });
   }
 
-  try {
-    // Проверяем и добавляем недостающие продукты по shopifyId
-    for (const product of selectedProducts) {
-      await prisma.product.upsert({
-        where: { shopifyId: product.id }, // Ищем по shopifyId
-        update: {}, // Ничего не обновляем
-        create: {
-          shopifyId: product.id, // Привязываем Shopify ID
-          title: product.name,
-          images: [product.imageUrl],
-          shopId: existingShop.id, // Привязываем к текущему магазину
+  const conflictProductsWithFunnels = [];
+
+  for (const product of selectedProducts) {
+    const existingProduct = await prisma.product.findUnique({
+      where: { shopifyId: product.id },
+      include: { funnel: true }, // Загружаем связанную воронку
+    });
+
+    if (existingProduct && existingProduct.funnel) {
+      conflictProductsWithFunnels.push({
+        product: {
+          id: product.id,
+          name: product.name,
+          imageUrl: product.imageUrl,
         },
+        funnel: { name: existingProduct.funnel.name },
       });
     }
+  }
 
-    // Создаем Funnel
-    await prisma.funnel.create({
+  if (conflictProductsWithFunnels.length > 0) {
+    return json({
+      error: "Some products are already linked to other funnels.",
+      conflictProducts: conflictProductsWithFunnels,
+    });
+  }
+
+  // Создаем воронку и добавляем продукты
+  try {
+    const newFunnel = await prisma.funnel.create({
       data: {
         name: name as string,
         autoLabels: autoLabels as boolean,
-        products: {
-          create: selectedProducts.map((product: { id: string }) => ({
-            product: {
-              connect: { shopifyId: product.id }, // Связываем по shopifyId
-            },
-          })),
-        },
         discountLevels: {
           create: discountLevels.map((level: DiscountLevel) => ({
             volume: level.volume,
@@ -134,6 +106,46 @@ export async function action({ request }: { request: Request }) {
       },
     });
 
+    for (const product of selectedProducts) {
+      await prisma.product.upsert({
+        where: { shopifyId: product.id },
+        update: { funnelId: newFunnel.id },
+        create: {
+          shopifyId: product.id,
+          title: product.name,
+          images: [product.imageUrl],
+          shopId: existingShop.id,
+          funnelId: newFunnel.id,
+        },
+      });
+    }
+    await selectedProducts.forEach((product: Product) => {
+            const query =
+          `mutation {
+            metafieldsSet(metafields: [
+              {
+                namespace: "product_data",
+                key: "volume_discount",
+                type: "string",
+                value: "${metafieldValue}",
+                ownerId: "${product.id}"
+              }
+            ]) {
+              userErrors {
+                field
+                message
+              }
+              metafields {
+                id
+                namespace
+                key
+                value
+              }
+            }
+          }`
+        ;
+          admin.graphql(query);
+          })
     return redirect("/app/funnel_table");
   } catch (error) {
     console.error("Error creating funnel:", error);
@@ -142,21 +154,26 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function CreateFunnel() {
-  const { discountLevels, name: initialName, autoLabels: initialAutoLabels } =
-    useLoaderData<{ discountLevels: DiscountLevel[]; name: string; autoLabels: boolean }>();
-    console.log("Loaded Data:", { discountLevels, initialName, initialAutoLabels });
-    if (!discountLevels) {
-      throw new Error("Discount levels are missing in loader data.");
-    }
-  const [offerName, setOfferName] = useState<string>(initialName || "");
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
-  const [autoLabels, setAutoLabels] = useState<boolean>(initialAutoLabels);
-  const [localDiscountLevels, setLocalDiscountLevels] = useState<DiscountLevel[]>(discountLevels || []);
-  const [conflictProducts, setConflictProducts] = useState<
-  { product: Product; funnel: { name: string } }[]
->([]);
+    const actionData = useActionData<{
+      error?: string;
+      conflictProducts?: { product: Product; funnel: { name: string } }[];
+    }>();
+
+    const [offerName, setOfferName] = useState<string>("");
+    const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+    const [autoLabels, setAutoLabels] = useState<boolean>(false);
+    const [localDiscountLevels, setLocalDiscountLevels] = useState<DiscountLevel[]>([]);
+    const [conflictProducts, setConflictProducts] = useState<
+      { product: Product; funnel: { name: string } }[]
+    >([]);
 
   const submit = useSubmit();
+
+  useEffect(() => {
+    if (actionData?.conflictProducts) {
+      setConflictProducts(actionData.conflictProducts);
+    }
+  }, [actionData]);
 
   const handleAddDiscountLevel = () => {
     setLocalDiscountLevels([
@@ -189,7 +206,7 @@ export default function CreateFunnel() {
         type: "product",
         action: "select",
         multiple: true,
-        selectionIds: selectedProducts.map((product) => ({ id: product.id })),
+        selectionIds: selectedProducts.map((product) => ({ id: product.id })), // Передаем объект с id
       });
 
       if (products && products.length > 0) {
@@ -199,73 +216,20 @@ export default function CreateFunnel() {
           imageUrl: product.images?.[0]?.originalSrc || "",
         }));
 
-        // Отправляем запрос к API для проверки конфликтов
-        const response = await fetch("/api/checkProductConflicts", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            productIds: JSON.stringify(newProducts.map((p) => p.id)),
-          }),
-        });
-
-        const { conflicts } = await response.json();
-
-        if (conflicts.length > 0) {
-          // Если есть конфликты, показываем предупреждение
-          setConflictProducts(
-            conflicts.map((conflict: { id: string; funnelName: string }) => ({
-              product: newProducts.find((p) => p.id === conflict.id)!,
-              funnel: { name: conflict.funnelName },
-            }))
+        // Обновляем список продуктов, удаляя дубли
+        setSelectedProducts((prevProducts) => {
+          const mergedProducts = [...prevProducts, ...newProducts];
+          // Удаляем дубли по id
+          const uniqueProducts = Array.from(
+            new Map(mergedProducts.map((product) => [product.id, product])).values()
           );
-        } else {
-          // Если конфликтов нет, добавляем продукты
-          setSelectedProducts((prevProducts) => {
-            const mergedProducts = [...prevProducts, ...newProducts];
-            const uniqueProducts = Array.from(
-              new Map(mergedProducts.map((product) => [product.id, product])).values()
-            );
-            return uniqueProducts;
-          });
-        }
+          return uniqueProducts;
+        });
       }
     } catch (error) {
       console.error("Error selecting products:", error);
     }
   }
-
-
-
-  // async function selectProduct() {
-  //   try {
-  //     const products = await window.shopify.resourcePicker({
-  //       type: "product",
-  //       action: "select",
-  //       multiple: true,
-  //       selectionIds: selectedProducts.map((product) => ({ id: product.id })), // Передаем объект с id
-  //     });
-
-  //     if (products && products.length > 0) {
-  //       const newProducts = products.map((product: any) => ({
-  //         id: product.id,
-  //         name: product.title,
-  //         imageUrl: product.images?.[0]?.originalSrc || "",
-  //       }));
-
-  //       // Обновляем список продуктов, удаляя дубли
-  //       setSelectedProducts((prevProducts) => {
-  //         const mergedProducts = [...prevProducts, ...newProducts];
-  //         // Удаляем дубли по id
-  //         const uniqueProducts = Array.from(
-  //           new Map(mergedProducts.map((product) => [product.id, product])).values()
-  //         );
-  //         return uniqueProducts;
-  //       });
-  //     }
-  //   } catch (error) {
-  //     console.error("Error selecting products:", error);
-  //   }
-  // }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();

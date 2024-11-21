@@ -34,30 +34,30 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
   return (
     <div
       style={{
-        background: "#f9f9f9",
+        background: "repeating-linear-gradient(45deg, #ffffff, #ffffff 10px, #f7f7f7 10px, #f7f7f7 20px)",
         padding: "20px 80px",
         borderRadius: "8px",
         boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
       }}
     >
       {/* Quantity Selector */}
-        <div
-            style={{ margin: "20px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}
-          >
-            {/* Widget Preview Header */}
-            <h2 style={{ marginBottom: "20px", fontWeight: "bold" }}>Widget preview</h2>
-            <div style={{ position: "relative", display: "inline-block" }}>
-  <span
-    style={{
-      position: "absolute",
-      left: "10px",
-      top: "50%",
-      transform: "translateY(-50%)",
-      pointerEvents: "none",
-      fontSize: "14px",
-      color: "#999",
-    }}
-  >
+      <div
+         style={{ margin: "20px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+       >
+       {/* Widget Preview Header */}
+       <h2 style={{ marginBottom: "20px", fontWeight: "bold" }}>Widget preview</h2>
+       <div style={{ position: "relative", display: "inline-block" }}>
+      <span
+        style={{
+          position: "absolute",
+          left: "10px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          pointerEvents: "none",
+          fontSize: "14px",
+          color: "#999",
+        }}
+      >
     volumes:
   </span>
   <input
@@ -78,7 +78,7 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
   />
 </div>
 
-          </div>
+      </div>
       <div>
         {/* Savings Chart */}
         <div
@@ -97,6 +97,7 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
         </div>
         <div
           style={{
+            width: "100%",
             position: "relative",
             height: "30px",
             background: "#eaeaea",
@@ -108,7 +109,8 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
             style={{
               width: `${(quantity / maxVolume) * 100}%`,
               background: "grey",
-              textAlign: "center",
+              // textAlign: "center",
+              alignItems: "center",
               color: "white",
               fontWeight: "bold",
               lineHeight: "40px",
@@ -116,7 +118,8 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
               position: "absolute",
               left: 0,
               top: 0,
-              display: "flex"
+              paddingLeft: 10,
+              display: "flex",
             }}
           >
             QUANTITY: {quantity}
@@ -142,7 +145,7 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
             position: "absolute",
             top: 0,
             left: `${(level.volume / maxVolume) * 100}%`,
-            width: "100%",
+            width: "50%",
             display: "flex",
             justifyContent: "space-between",
             padding: "0 10px",
@@ -151,10 +154,12 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
             pointerEvents: "none",
           }}
         >
-          {discountLevels.map((level, index) => (
             <span
               key={index}
               style={{
+                left: `${(level.volume / maxVolume) * 100}%`,
+                width: "40%",
+                maxWidth: "100%",
                 fontSize: "12px",
                 fontWeight: "bold",
                 color: "#333",
@@ -163,7 +168,6 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
             >
               {level.label}
             </span>
-          ))}
         </div>
          </>
           ))}
@@ -193,10 +197,10 @@ const SavingsChartWidget: React.FC<SavingsChartWidgetProps> = ({
         <tbody>
           {discountLevels.map((level, index) => (
             <tr key={index}>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+              <td style={{ border: "1px solid #ddd", padding: "8px", background: "white" }}>
                 {level.volume}
               </td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+              <td style={{ border: "1px solid #ddd", padding: "8px",  background: "white" }}>
                 {level.label}
               </td>
             </tr>

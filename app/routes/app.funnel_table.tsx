@@ -9,11 +9,12 @@ import {
   TextField,
   Pagination,
   Box,
-  useBreakpoints
+  useBreakpoints,
 } from '@shopify/polaris';
 import { json } from "@remix-run/node";
 import { DeleteIcon, ChartHistogramGrowthIcon, SearchIcon } from '@shopify/polaris-icons';
 import { useFetcher, useLoaderData, useNavigate } from '@remix-run/react';
+import DeleteModal from "../components/funnelDeleteModal/funnelDeleteModal";
 
 type Offer = {
   id: string;
@@ -74,6 +75,8 @@ function OffersTable() {
   const fetcher = useFetcher();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [modalActive, setModalActive] = useState(false);
+  const [funnelToDelete, setFunnelToDelete] = useState<Offer | null>(null);
   const rowsPerPage = 5;
   const navigate = useNavigate();
 
@@ -88,9 +91,20 @@ function OffersTable() {
     currentPage * rowsPerPage
   );
 
-  const handleDelete = (funnelId: string) => {
-    if (confirm('Are you sure you want to delete this funnel?')) {
-      fetcher.submit({ funnelId }, { method: "post" });
+  const openDeleteModal = (funnel: Offer) => {
+    setFunnelToDelete(funnel);
+    setModalActive(true);
+  };
+
+  const closeDeleteModal = () => {
+    setModalActive(false);
+    setFunnelToDelete(null);
+  };
+
+  const confirmDelete = () => {
+    if (funnelToDelete) {
+      fetcher.submit({ funnelId: funnelToDelete.id }, { method: "post" });
+      closeDeleteModal();
     }
   };
 
@@ -111,7 +125,12 @@ function OffersTable() {
           <Badge tone="success">{status}</Badge>
         </IndexTable.Cell>
         <IndexTable.Cell>
-          <Button icon={DeleteIcon} variant="primary" tone="critical" onClick={() => handleDelete(id)}/>
+          <Button
+          icon={DeleteIcon}
+          variant="primary"
+          tone="critical"
+          onClick={() => openDeleteModal({ id, name, creationDate, products, status })}
+        />
         </IndexTable.Cell>
       </IndexTable.Row>
     )
@@ -183,7 +202,13 @@ function OffersTable() {
         </Text>
         </div>
       </Box>
-
+     {/* Delete Modal */}
+     <DeleteModal
+        active={modalActive}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        funnelName={funnelToDelete?.name}
+      />
     </div>
   );
 }
