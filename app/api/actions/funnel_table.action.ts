@@ -34,8 +34,8 @@ export async function funnelAction(request: Request) {
         mutation {
           metafieldDelete(input: {
             id: "${product.shopifyId}",
-            namespace: "product_data",
-            key: "volume_discount"
+            namespace: "discount_data",
+            key: "volumes_discounts"
           }) {
             deletedId
             userErrors {

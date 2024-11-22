@@ -124,8 +124,8 @@ export async function action({ request }: { request: Request }) {
         mutation {
           metafieldsSet(metafields: [
             {
-              namespace: "product_data",
-              key: "volume_discount",
+              namespace: "discount_data",
+              key: "volumes_discounts",
               type: "json",
               value: ${JSON.stringify(JSON.stringify(metafieldValue))},
               ownerId: "${product.id}"
@@ -147,7 +147,7 @@ export async function action({ request }: { request: Request }) {
       admin.graphql(query);
     });
 
-    return redirect("/app/funnel_table");
+    return redirect("/app");
   } catch (error) {
     console.error("Error creating funnel:", error);
     return json({ error: "Failed to create funnel" }, { status: 500 });
@@ -162,13 +162,24 @@ export default function CreateFunnel() {
 
     const [offerName, setOfferName] = useState<string>("");
     const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
-    const [autoLabels, setAutoLabels] = useState<boolean>(false);
+    const [autoLabels, setAutoLabels] = useState<boolean>(true);
     const [localDiscountLevels, setLocalDiscountLevels] = useState<DiscountLevel[]>([]);
     const [conflictProducts, setConflictProducts] = useState<
       { product: Product; funnel: { name: string } }[]
     >([]);
+    const [labels, setLabels] = useState<string[]>(
+      localDiscountLevels.map((level) => level.label)
+    );
+
 
   const submit = useSubmit();
+  useEffect(() => {
+    if (autoLabels) {
+      setLabels(
+        localDiscountLevels.map((level) => `- ${level.discount} %`)
+      );
+    }
+  }, [autoLabels, localDiscountLevels]);
 
   useEffect(() => {
     if (actionData?.conflictProducts) {
@@ -187,19 +198,51 @@ export default function CreateFunnel() {
     setLocalDiscountLevels(localDiscountLevels.filter((_, i) => i !== index));
   };
 
-  const updateDiscountLevel = (index: number, field: keyof DiscountLevel, value: string) => {
-    const updatedLevels = localDiscountLevels.map((level, i) =>
-      i === index
-        ? {
-            ...level,
-            [field]: field === "volume" || field === "discount" ? parseFloat(value) : value,
-            // Обновляем label автоматически только если autoLabels включен и редактируется discount
-            label: autoLabels && field === "discount" ? `- ${value} %` : level.label,
-          }
-        : level
-    );
+  const updateDiscountLevel = (
+    index: number | null, // Если null, обновляем все уровни
+    field: keyof DiscountLevel | "autoLabels",
+    value: string | boolean
+  ) => {
+    const updatedLevels = localDiscountLevels.map((level, i) => {
+      if (index !== null && i !== index) return level;
+
+      // Если поле autoLabels, обновляем все лейблы
+      if (field === "autoLabels") {
+        return {
+          ...level,
+          label: value && field === "autoLabels" ? `- ${level.discount} %` : level.label,
+        };
+      }
+
+      return {
+        ...level,
+        [field]: field === "volume" || field === "discount" ? parseFloat(value as string) : value,
+        // Обновляем label, если autoLabels включен и редактируется discount
+        label: autoLabels && field === "discount" ? `- ${value} %` : level.label,
+      };
+    });
+
     setLocalDiscountLevels(updatedLevels);
+
+    // Если обновляем состояние autoLabels
+    if (field === "autoLabels") {
+      setAutoLabels(value as boolean);
+    }
   };
+
+  // const updateDiscountLevel = (index: number, field: keyof DiscountLevel, value: string) => {
+  //   const updatedLevels = localDiscountLevels.map((level, i) =>
+  //     i === index
+  //       ? {
+  //           ...level,
+  //           [field]: field === "volume" || field === "discount" ? parseFloat(value) : value,
+  //           // Обновляем label автоматически только если autoLabels включен и редактируется discount
+  //           label: autoLabels && field === "discount" ? `- ${value} %` : level.label,
+  //         }
+  //       : level
+  //   );
+  //   setLocalDiscountLevels(updatedLevels);
+  // };
 
   async function selectProduct() {
     try {
@@ -384,11 +427,17 @@ export default function CreateFunnel() {
                 />
                 <TextField
                   label="Label"
-                  value={level.label}
-                  onChange={(value) => updateDiscountLevel(index, "label", value)}
+                  value={labels[index]}
+                  onChange={(value) => {
+                    if (!autoLabels) {
+                      setLabels((prev) =>
+                        prev.map((label, i) => (i === index ? value : label))
+                      );
+                    }
+                  }}
                   autoComplete="off"
-                  disabled={autoLabels}
                   helpText="Discount label"
+                  disabled={autoLabels}
                 />
               </div>
             ))}
@@ -396,7 +445,12 @@ export default function CreateFunnel() {
               <Checkbox
                 label="Automatic labels (recommended)"
                 checked={autoLabels}
-                onChange={(newChecked) => setAutoLabels(newChecked)}
+                onChange={(newChecked) => {
+                  setAutoLabels(newChecked);
+                  if (newChecked) {
+                    setLabels(localDiscountLevels.map((level) => `- ${level.discount} %`));
+                  }
+                }}
               />
             </InlineStack>
             </BlockStack>

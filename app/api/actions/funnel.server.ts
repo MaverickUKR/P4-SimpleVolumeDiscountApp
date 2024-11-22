@@ -66,7 +66,7 @@ export async function handleFunnelCreation(request: Request) {
       const query = `
         query {
           product(id: "${product.id}") {
-            metafield(namespace: "product_data", key: "volume_discount") {
+            metafield(namespace: "discount_data", key: "volumes_discounts") {
               value
             }
           }
@@ -96,8 +96,8 @@ export async function handleFunnelCreation(request: Request) {
         mutation {
           metafieldsSet(metafields: [
             {
-              namespace: "product_data",
-              key: "volume_discount",
+              namespace: "discount_data",
+              key: "volumes_discounts",
               type: "string",
               value: "${metafieldValue}",
               ownerId: "${product.id}"
@@ -114,10 +114,10 @@ export async function handleFunnelCreation(request: Request) {
     }
 
     if (conflictProducts.length > 0) {
-      return json({ error: "Some products already have volume_discount metafields", conflictProducts });
+      return json({ error: "Some products already have volumes_discounts metafields", conflictProducts });
     }
 
-    return redirect("/app/funnel_table");
+    return redirect("/app");
   } catch (error) {
     console.error("Error creating funnel:", error);
     return json({ error: "Failed to create funnel" }, { status: 500 });

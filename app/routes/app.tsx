@@ -24,10 +24,8 @@ export default function App() {
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <NavMenu>
         <Link to="/app" rel="home">
-          Home
+        Funnel Table
         </Link>
-        <Link to="/app/additional">Additional page</Link>
-        <Link to="/app/funnel_table">Funnel Table</Link>
         <Link to="/app/create_funnel">Create funnel</Link>
       </NavMenu>
       <Outlet />

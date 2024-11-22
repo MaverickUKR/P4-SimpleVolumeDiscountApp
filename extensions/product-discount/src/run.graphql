@@ -7,7 +7,7 @@ query RunInput {
         ... on ProductVariant {
           id
           product {
-             metafield(namespace: "product_data", key: "volume_discount") {
+             metafield(namespace: "discount_data", key: "volumes_discounts") {
               value
             }
           }

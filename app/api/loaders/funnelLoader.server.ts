@@ -176,8 +176,8 @@ export async function funnelLoader(funnelId: string) {
 //     `mutation {
 //       metafieldsSet(metafields: [
 //         {
-//           namespace: "product_data",
-//           key: "volume_discount",
+//           namespace: "discount_data",
+//           key: "volumes_discounts",
 //           type: "string",
 //           value: "${metafieldValue}",
 //           ownerId: "${product.id}"
