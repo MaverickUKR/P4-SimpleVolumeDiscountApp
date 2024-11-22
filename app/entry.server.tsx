@@ -1,4 +1,5 @@
 import { PassThrough } from "stream";
+import React from "react";
 import { renderToPipeableStream } from "react-dom/server";
 import { RemixServer } from "@remix-run/react";
 import {
@@ -7,6 +8,11 @@ import {
 } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+
+if (typeof document === 'undefined') {
+  // Переопределяем useLayoutEffect для серверной среды
+  React.useLayoutEffect = React.useEffect;
+}
 
 const ABORT_DELAY = 5000;
 

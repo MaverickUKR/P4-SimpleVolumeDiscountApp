@@ -3,7 +3,7 @@
 client_id = "6addcecbdc42d0e15ca315868c510264"
 name = "SimpleVolumeDiscountApp"
 handle = "simplevolumediscountapp-1"
-application_url = "https://glenn-sd-activity-lodge.trycloudflare.com"
+application_url = "https://sources-blocked-bare-mounted.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,13 +17,17 @@ scopes = "read_products,write_products,read_orders,read_discounts,write_discount
 
 [auth]
 redirect_urls = [
-  "https://glenn-sd-activity-lodge.trycloudflare.com/auth/callback",
-  "https://glenn-sd-activity-lodge.trycloudflare.com/auth/shopify/callback",
-  "https://glenn-sd-activity-lodge.trycloudflare.com/api/auth/callback"
+  "https://sources-blocked-bare-mounted.trycloudflare.com/auth/callback",
+  "https://sources-blocked-bare-mounted.trycloudflare.com/auth/shopify/callback",
+  "https://sources-blocked-bare-mounted.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
 
 [pos]
 embedded = false
