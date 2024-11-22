@@ -1,0 +1,85 @@
+.volume-discount-banner {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.volume-discount-banner h2 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Progress Bar */
+.savings-chart {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.progress-bar {
+  width: 0;
+  height: 30px;
+  background-color: #007acc;
+  color: #fff;
+  text-align: center;
+  line-height: 30px;
+  font-weight: bold;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.discount-markers {
+  position: relative;
+  margin-top: 10px;
+  height: 20px;
+}
+
+.discount-marker {
+  position: absolute;
+  top: -10px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #555;
+}
+
+.discount-marker span {
+  display: block;
+  text-align: center;
+  background: #fff;
+  padding: 2px 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Discounts Table */
+.discounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.discounts-table th,
+.discounts-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.discounts-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+.discounts-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.discounts-table tr:hover {
+  background-color: #eaeaea;
+}

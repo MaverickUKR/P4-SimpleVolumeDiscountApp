@@ -18,7 +18,7 @@ import {
 } from "@shopify/polaris";
 import { getAdminContext } from "app/shopify.server";
 import SavingsChartWidget from "app/components/widgetLayout/widgetLayout";
-import { concatenateVolumeAndDiscount } from "app/utils/concatVolumeAndDiscount";
+import { toJsonVolumeAndDiscount } from "app/utils/toJsonVolumesAndDiscount";
 
 type DiscountLevel = {
   id: number;
@@ -46,7 +46,7 @@ export async function action({ request }: { request: Request }) {
   const selectedProducts = JSON.parse(formData.get("selectedProducts") as string);
   const discountLevels = JSON.parse(formData.get("discountLevels") as string);
 
-  const { metafieldValue } = concatenateVolumeAndDiscount(discountLevels);
+  const { metafieldValue } = toJsonVolumeAndDiscount(discountLevels);
 
   if (!name || !selectedProducts || !discountLevels) {
     return json({ error: "Missing required fields" }, { status: 400 });
@@ -120,32 +120,33 @@ export async function action({ request }: { request: Request }) {
       });
     }
     await selectedProducts.forEach((product: Product) => {
-            const query =
-          `mutation {
-            metafieldsSet(metafields: [
-              {
-                namespace: "product_data",
-                key: "volume_discount",
-                type: "string",
-                value: "${metafieldValue}",
-                ownerId: "${product.id}"
-              }
-            ]) {
-              userErrors {
-                field
-                message
-              }
-              metafields {
-                id
-                namespace
-                key
-                value
-              }
+      const query = `
+        mutation {
+          metafieldsSet(metafields: [
+            {
+              namespace: "product_data",
+              key: "volume_discount",
+              type: "json",
+              value: ${JSON.stringify(JSON.stringify(metafieldValue))},
+              ownerId: "${product.id}"
             }
-          }`
-        ;
-          admin.graphql(query);
-          })
+          ]) {
+            userErrors {
+              field
+              message
+            }
+            metafields {
+              id
+              namespace
+              key
+              value
+            }
+          }
+        }
+      `;
+      admin.graphql(query);
+    });
+
     return redirect("/app/funnel_table");
   } catch (error) {
     console.error("Error creating funnel:", error);

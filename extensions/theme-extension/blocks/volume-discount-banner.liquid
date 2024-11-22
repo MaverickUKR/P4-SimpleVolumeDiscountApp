@@ -1,0 +1,182 @@
+<div class="volume-discount-banner">
+  <h2>{{ section.settings.banner_heading }}</h2>
+
+  <!-- Прогресс-бар -->
+  <div class="savings-chart">
+    <div class="progress-bar-container">
+      <div
+        class="progress-bar"
+        style="width: {{ cart.items | map: 'quantity' | sum | divided_by: product.metafields.product_data.volume_discount.value | parse_json | max: 'Volumes' | times: 100 }}%">
+      </div>
+    </div>
+
+    <div class="discount-markers">
+      {% assign discount_data = product.metafields.product_data.volume_discount.value | parse_json %}
+      {% for volume in discount_data.Volumes %}
+        <div class="discount-marker" style="left: {{ volume | divided_by: discount_data.Volumes.last | times: 100 }}%;">
+          <span>{{ discount_data.Discounts[forloop.index0] }}%</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Управление количеством -->
+  <form method="post" action="/cart/change">
+    <div class="quantity-controls">
+      <input type="hidden" name="id" value="{{ product.variants.first.id }}">
+      <button type="submit" name="quantity" value="{{ cart.items.first.quantity | minus: 1 }}" class="quantity-btn">-</button>
+      <span class="quantity-display">{{ cart.items.first.quantity }}</span>
+      <button type="submit" name="quantity" value="{{ cart.items.first.quantity | plus: 1 }}" class="quantity-btn">+</button>
+    </div>
+  </form>
+
+  <!-- Таблица скидок -->
+  <table>
+    <thead>
+      <tr>
+        <th>Quantity</th>
+        <th>Discount per item</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for volume in discount_data.Volumes %}
+        <tr>
+          <td>{{ volume }}</td>
+          <td>{{ discount_data.Discounts[forloop.index0] }}%</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .volume-discount-banner {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #f9f9f9;
+  }
+
+  .savings-chart {
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .progress-bar-container {
+    width: 100%;
+    background: #eaeaea;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    height: 30px;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: #007acc;
+    text-align: center;
+    line-height: 30px;
+    color: white;
+    font-weight: bold;
+    transition: width 0.3s ease;
+  }
+
+  .discount-markers {
+    position: relative;
+    height: 20px;
+    margin-top: 10px;
+  }
+
+  .discount-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #555;
+  }
+
+  .quantity-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+  }
+
+  .quantity-btn {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    background-color: #f4f4f4;
+    cursor: pointer;
+  }
+
+  .quantity-btn:hover {
+    background-color: #e0e0e0;
+  }
+
+  table {
+    width: 100%;
+    text-align: center;
+    border-collapse: collapse;
+
+{% schema %}
+{
+  "name": "Volume Discount Banner",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "banner_heading",
+      "label": "Banner Heading",
+      "default": "Discounts"
+    }
+  ]
+}
+{% endschema %}
+
+
+
+{% comment %} <link rel="stylesheet" href="{{ 'volume-discount-banner.css' | asset_url }}">
+<div class="volume-discount-banner">
+  <h2>{{ section.settings.banner_heading }}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Quantity</th>
+        <th>Discount per item</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if product.metafields.product_data.volume_discount %}
+        {% assign discount_data = product.metafields.product_data.volume_discount.value %}
+        {% for volume in discount_data.Volumes %}
+          <tr>
+            <td>{{ volume }}</td>
+            <td>{{ discount_data.Discounts[forloop.index0] }}%</td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="2">No discounts available</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% schema %}
+{
+  "name": "Volume Discount Banner",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "banner_heading",
+      "label": "Banner Heading",
+      "default": "Discounts"
+    }
+  ]
+}
+{% endschema %}
+
+ {% endcomment %}

@@ -1,3 +1,7 @@
 name = "theme-extension"
 type = "theme"
 
+[[blocks]]
+name = "Volume Discount Banner"
+type = "volume-discount-banner"
+description = "Displays a banner with volume discounts"

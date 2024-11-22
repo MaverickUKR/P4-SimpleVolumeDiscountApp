@@ -3,7 +3,7 @@
 client_id = "6addcecbdc42d0e15ca315868c510264"
 name = "SimpleVolumeDiscountApp"
 handle = "simplevolumediscountapp-1"
-application_url = "https://foods-barbados-adds-comparative.trycloudflare.com"
+application_url = "https://effects-cb-fs-jimmy.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_products,write_products,read_orders,read_discounts,write_discount
 
 [auth]
 redirect_urls = [
-  "https://foods-barbados-adds-comparative.trycloudflare.com/auth/callback",
-  "https://foods-barbados-adds-comparative.trycloudflare.com/auth/shopify/callback",
-  "https://foods-barbados-adds-comparative.trycloudflare.com/api/auth/callback"
+  "https://effects-cb-fs-jimmy.trycloudflare.com/auth/callback",
+  "https://effects-cb-fs-jimmy.trycloudflare.com/auth/shopify/callback",
+  "https://effects-cb-fs-jimmy.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

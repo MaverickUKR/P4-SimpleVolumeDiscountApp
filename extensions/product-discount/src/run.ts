@@ -1,86 +1,43 @@
-// @ts-check
 import { DiscountApplicationStrategy } from "../generated/api";
+import type { Discount, FunctionRunResult, RunInput } from "../generated/api";
 
-/**
- * @typedef {import("../generated/api").RunInput} RunInput
- * @typedef {import("../generated/api").FunctionRunResult} FunctionRunResult
- * @typedef {import("../generated/api").Target} Target
- */
-
-/**
- * Константа для возврата пустой скидки.
- * @type {FunctionRunResult}
- */
-const EMPTY_DISCOUNT = {
+const EMPTY_DISCOUNT: FunctionRunResult = {
   discountApplicationStrategy: DiscountApplicationStrategy.First,
   discounts: [],
 };
 
-/**
- * Парсит строку метафилда и возвращает массив объемов и скидок.
- * @param {string} metafieldValue
- * @returns {{ volumes: number[], discounts: number[] }}
- */
-function parseMetafield(metafieldValue: string) {
-  const [volumesPart, discountsPart] = metafieldValue.split("Discounts:");
-  const volumes = volumesPart
-    .replace("Volumes:", "")
-    .split(",")
-    .map(Number);
-  const discounts = discountsPart.split(",").map(Number);
-  return { volumes, discounts };
-}
-
-/**
- * @param {number} quantity
- * @param {number[]} volumes
- * @param {number[]} discounts
- * @returns {number}
- */
-function calculateDiscount(quantity, volumes, discounts) {
-  let discount = 0;
-
-  for (let i = 0; i < volumes.length - 1; i++) {
-    if (quantity >= volumes[i]) {
-      discount = discounts[i];
-    } else {
-      console.log(`Quantity ${quantity} is less than ${volumes[i]} on iteartion ${i}`);
-      break
-    }
-  }
-  console.log(`Discount is ${discount}`);
-  return discount;
-}
-
-/**
- * Основная функция расчета скидок.
- * @param {RunInput} input
- * @returns {FunctionRunResult}
- */
-export function run(input) {
-  const discounts = [];
+export function run(input: RunInput): FunctionRunResult {
+  const discounts: Discount[] = [];
 
   input.cart.lines.forEach((line) => {
     const metafield = line.merchandise?.product?.metafield?.value;
 
-    // Пропускаем строки без метафилда или с пустым значением
     if (!metafield || metafield.trim() === "") {
       console.error(`Skipping line ${line.id}: Metafield is missing or empty.`);
       return;
     }
 
     try {
-      // Парсим метафилд
-      const { volumes, discounts: discountValues } = parseMetafield(metafield);
+      const { Volumes, Discounts } = JSON.parse(metafield);
 
-      // Рассчитываем скидку
-      const discountPercentage = calculateDiscount(
-        line.quantity,
-        volumes,
-        discountValues
-      );
+      if (!Array.isArray(Volumes) || !Array.isArray(Discounts)) {
+        console.error(
+          `Skipping line ${line.id}: Invalid metafield format.`,
+          metafield
+        );
+        return;
+      }
 
-      if (discountPercentage > 0) {
+      let applicableDiscount = 0;
+      for (let i = 0; i < Volumes.length; i++) {
+        if (line.quantity >= Volumes[i]) {
+          applicableDiscount = Discounts[i];
+        } else {
+          break;
+        }
+      }
+
+      if (applicableDiscount > 0) {
         discounts.push({
           targets: [
             {
@@ -91,7 +48,7 @@ export function run(input) {
           ],
           value: {
             percentage: {
-              value: discountPercentage.toString(),
+              value: applicableDiscount.toString(),
             },
           },
         });
@@ -99,7 +56,7 @@ export function run(input) {
     } catch (error) {
       console.error(
         `Error processing metafield for line ${line.id}:`,
-        error.message
+        error instanceof Error ? error.message : "Unknown error"
       );
     }
   });
@@ -114,60 +71,3 @@ export function run(input) {
     discountApplicationStrategy: DiscountApplicationStrategy.First,
   };
 }
-
-// // @ts-check
-// import { DiscountApplicationStrategy } from "../generated/api";
-
-// // Use JSDoc annotations for type safety
-// /**
-//  * @typedef {import("../generated/api").RunInput} RunInput
-//  * @typedef {import("../generated/api").FunctionRunResult} FunctionRunResult
-//  * @typedef {import("../generated/api").Target} Target
-//  * @typedef {import("../generated/api").ProductVariant} ProductVariant
-//  */
-
-// /**
-//  * @type {FunctionRunResult}
-//  */
-// const EMPTY_DISCOUNT = {
-//   discountApplicationStrategy: DiscountApplicationStrategy.First,
-//   discounts: [],
-// };
-// /**
-//  * @param {RunInput} input
-//  * @returns {FunctionRunResult}
-//  */
-// export function run(input) {
-//   const targets = input.cart.lines
-//     // Only include cart lines with a quantity of two or more
-//     .filter((line) => line.quantity >= 2)
-//     .map((line) => {
-//       return /** @type {Target} */ ({
-//         // Use the cart line ID to create a discount target
-//         cartLine: {
-//           id: line.id,
-//         },
-//       });
-//     });
-//   if (!targets.length) {
-//     // You can use STDERR for debug logs in your function
-//     console.error("No cart lines qualify for volume discount.");
-//     return EMPTY_DISCOUNT;
-//   }
-
-//   return {
-//     discounts: [
-//       {
-//         // Apply the discount to the collected targets
-//         targets,
-//         // Define a percentage-based discount
-//         value: {
-//           percentage: {
-//             value: "10.0",
-//           },
-//         },
-//       },
-//     ],
-//     discountApplicationStrategy: DiscountApplicationStrategy.First,
-//   };
-// }
